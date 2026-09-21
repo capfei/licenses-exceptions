@@ -1,5 +1,5 @@
 {
-  "name": "licenses-exceptions",
+  "name": "@capfei/licenses-exceptions",
   "description": "A list of licenses and exceptions",
   "version": "0.0.1",
   "author": "The Linux Foundation",
@@ -7,7 +7,7 @@
     "Kyle E. Mitchell <kyle@kemitchell.com> (https://kemitchell.com/)"
   ],
   "license": "CC-BY-3.0",
-  "repository": "capfei/license-exceptions.json",
+  "repository": "capfei/licenses-exceptions",
   "files": [
     "licenses-index.json",
     "licenses-deprecated.json",
