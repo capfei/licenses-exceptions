@@ -1,52 +1,35 @@
-const assert = require('assert')
-const order = require('./order')
+#!/usr/bin/env node
+const { buildLists } = require('./lists')
 
-// Download JSON file from spdx.org.
-require('https').request('https://spdx.org/licenses/exceptions.json')
-  .once('response', response => {
-    assert.strictEqual(response.statusCode, 200)
-    const chunks = []
-    response
-      .on('data', chunk => { chunks.push(chunk) })
-      .once('error', error => { assert.ifError(error) })
-      .once('end', () => {
-        const buffer = Buffer.concat(chunks)
-        const spdxJSON = JSON.parse(buffer)
-        const listVersion = spdxJSON.licenseListVersion
-        console.log(`License List Version: ${listVersion}`)
-        const identifiers = []
-        const deprecated = []
-        spdxJSON.exceptions.forEach(object => {
-          const id = object.licenseExceptionId
-          if (object.isDeprecatedLicenseId) {
-            deprecated.push(id)
-          } else {
-            identifiers.push(id)
-          }
-        })
-        identifiers.sort(order)
-        deprecated.sort(order)
+buildLists()
+  .then(({ versions, lists }) => {
+    console.log(`SPDX License List Version: ${versions.spdxLicenses}`)
+    console.log(`SPDX Exception List Version: ${versions.spdxExceptions}`)
 
-        const indexJSON = require('./index')
-        const deprecatedJSON = require('./deprecated')
+    let outdated = false
+    Object.entries(lists).forEach(([file, latest]) => {
+      const current = require(`./${file}.json`)
+      const missing = latest.filter(id => !current.includes(id))
+      const extra = current.filter(id => !latest.includes(id))
+      if (missing.length || extra.length) {
+        outdated = true
+        console.error(`${file}.json is out of date.`)
+        missing.forEach(id => console.error(`  Missing: ${id}`))
+        extra.forEach(id => console.error(`  Extra: ${id}`))
+      } else if (JSON.stringify(current) !== JSON.stringify(latest)) {
+        outdated = true
+        console.error(`${file}.json is out of order.`)
+      } else {
+        console.log(`${file}.json is up to date.`)
+      }
+    })
 
-        identifiers.forEach(identifier => {
-          assert(indexJSON.includes(identifier), `Missing: ${identifier}`)
-        })
-        indexJSON.forEach(identifier => {
-          assert(identifiers.includes(identifier), `Extra: ${identifier}`)
-        })
-        assert.deepStrictEqual(indexJSON, identifiers, 'identifiers')
-        console.log('index.json is up to date.')
-
-        deprecated.forEach(identifier => {
-          assert(deprecatedJSON.includes(identifier), `Missing Deprecated: ${identifier}`)
-        })
-        deprecatedJSON.forEach(identifier => {
-          assert(deprecated.includes(identifier), `Extra Deprecated: ${identifier}`)
-        })
-        assert.deepStrictEqual(deprecatedJSON, deprecated, 'deprecated')
-        console.log('deprecated.json is up to date.')
-      })
+    if (outdated) {
+      console.error('Run `npm run build` to update.')
+      process.exit(1)
+    }
   })
-  .end()
+  .catch(error => {
+    console.error(error.message)
+    process.exit(1)
+  })

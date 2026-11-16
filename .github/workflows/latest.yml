@@ -1,5 +1,5 @@
 ---
-name: 'Check Latest SPDX License List'
+name: 'Check Latest SPDX and ScanCode License Lists'
 on:
   workflow_dispatch:
     inputs: {}
